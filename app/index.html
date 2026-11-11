@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>FPV Wind</title>
+  <!-- All URLs are relative, so the app works under a subpath and at the web root. Open it with a trailing slash. -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <button id="place" class="place" aria-label="Change location" data-i18n-aria="changePlace">
+      <span id="place-name" data-i18n="locating">Locating…</span>
+      <span class="caret" aria-hidden="true">▾</span>
+    </button>
+    <button id="settings-btn" class="icon-btn" aria-label="Settings" data-i18n-aria="settings">⚙</button>
+  </header>
+  <div id="status" class="status" hidden></div>
+
+  <main>
+    <!-- selected hour -->
+    <section id="card" class="card" aria-live="polite">
+      <div class="card-top">
+        <span id="card-time" class="card-time">–</span>
+        <span id="card-agreement" class="chip"></span>
+      </div>
+      <div class="card-middle">
+        <div class="verdict-block">
+          <div id="verdict" class="verdict">…</div>
+          <div id="reason" class="reason"></div>
+        </div>
+        <svg id="compass" class="compass" viewBox="0 0 100 100" aria-label="Wind direction" data-i18n-aria="windDirection">
+          <circle cx="50" cy="50" r="44" class="compass-dial"/>
+          <text x="50" y="14" class="compass-n">N</text><text x="89" y="54" class="compass-l">E</text>
+          <text x="50" y="94" class="compass-l">S</text><text x="11" y="54" class="compass-l">W</text>
+          <g id="compass-arrow"><path d="M50 20 L60 62 L50 55 L40 62 Z" class="compass-head"/></g>
+        </svg>
+      </div>
+      <div class="figures">
+        <div><span class="label">10 m</span><b id="n-10">–</b></div>
+        <div><span class="label" id="n-max-label" data-i18n="max">max</span><b id="n-max">–</b></div>
+        <div><span class="label" data-i18n="gusts">gusts</span><b id="n-gust">–</b></div>
+        <div><span class="label" id="n-weather-label" data-i18n="weather">weather</span><b id="n-temp">–</b></div>
+      </div>
+      <div id="direction-text" class="direction-text"></div>
+      <div id="extended-text" class="direction-text" hidden></div>
+    </section>
+
+    <!-- hours of the selected day -->
+    <section class="section">
+      <div class="section-title"><h2 id="day-title" data-i18n="today">Today</h2><span class="hint" data-i18n-html="hoursHint">max wind · <small>gusts</small></span></div>
+      <div id="hours" class="hours" role="listbox" aria-label="Hours" data-i18n-aria="hours"></div>
+    </section>
+
+    <!-- altitude profile -->
+    <section class="section">
+      <details id="profile-details" open>
+        <summary><h2 data-i18n="windAloft">Wind at altitude</h2></summary>
+        <button id="extended-btn" class="small-btn extended-btn" aria-pressed="false" data-i18n="extendedBtn">⛰ Higher: up to 2 km</button>
+        <div class="profile-wrap"><table id="profile" class="profile"></table></div>
+        <p class="fineprint" data-i18n-html="profileNote">Median of the models in km/h. Colour: green &lt; 80% of the limit, yellow up to the limit, red above.
+          Extended altitude: wind above ground level from pressure levels (950-600 hPa), arrow: where the wind blows to.</p>
+      </details>
+    </section>
+
+    <!-- map -->
+    <section class="section">
+      <div class="section-title"><h2 data-i18n="windMap">Wind map</h2>
+        <div id="map-height" class="switch" role="group" aria-label="Map altitude" data-i18n-aria="mapAltitude">
+          <button data-height="10" class="active">10 m</button><button data-height="80">80 m</button><button data-height="120">120 m</button>
+        </div>
+      </div>
+      <div id="map" class="map"><button id="map-start" class="map-start" data-i18n="showMap">Show wind direction map</button></div>
+      <p class="fineprint" data-i18n="mapNote">Arrows show where the wind blows to (~3 km grid, ICON/best model for the region), for the selected hour.</p>
+    </section>
+
+    <!-- 7 days -->
+    <section class="section">
+      <h2 data-i18n="sevenDays">7 days</h2>
+      <div id="days" class="days"></div>
+    </section>
+
+    <p class="footer"><span data-i18n-html="footer">Data: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (ICON, ECMWF, GFS, GEM, Météo-France) ·
+      map © <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>, <a href="https://opentopomap.org" rel="noopener">OpenTopoMap</a> ·
+      logic based on <a href="https://github.com/szkocot/drone-blast" rel="noopener">Drone Blast</a> (MIT). The forecast is indicative; the decision to fly is the pilot's.</span>
+      <br><span id="updated"></span></p>
+  </main>
+
+  <!-- place dialog -->
+  <dialog id="dlg-place" class="panel">
+    <form method="dialog" class="panel-top"><h2 data-i18n="place">Location</h2><button class="icon-btn" aria-label="Close" data-i18n-aria="close">✕</button></form>
+    <button id="gps" class="big-btn" data-i18n="myLocation">📍 My location</button>
+    <input id="search" type="search" placeholder="Search for a place…" data-i18n-placeholder="searchPlaceholder" autocomplete="off" enterkeyhint="search">
+    <ul id="results" class="list"></ul>
+    <h3 data-i18n="saved">Saved</h3>
+    <ul id="favorites" class="list"></ul>
+    <button id="save-place" class="small-btn" data-i18n="savePlace">☆ Save current location</button>
+  </dialog>
+
+  <!-- settings dialog -->
+  <dialog id="dlg-settings" class="panel">
+    <form method="dialog" class="panel-top"><h2 data-i18n="settings">Settings</h2><button class="icon-btn" aria-label="Close" data-i18n-aria="close">✕</button></form>
+    <div class="switch wide" id="presets" role="group" aria-label="Drone profile" data-i18n-aria="droneProfile">
+      <button data-preset="whoop" data-i18n="presetWhoop">Whoop</button><button data-preset="5" data-i18n="preset5">5″ freestyle</button><button data-preset="lr" data-i18n="presetLr">Long range</button>
+    </div>
+    <label class="slider"><span data-i18n="windLimit">Wind limit</span> <b id="s-limit-value"></b><input id="s-limit" type="range" min="10" max="50" step="1"></label>
+    <label class="slider"><span data-i18n="gustLimit">Gust limit</span> <b id="s-gust-value"></b><input id="s-gust" type="range" min="15" max="70" step="1"></label>
+    <label class="slider"><span data-i18n="flyUpTo">Fly up to altitude</span> <b id="s-alt-value"></b><input id="s-alt" type="range" min="30" max="180" step="10"></label>
+    <p class="fineprint" data-i18n="verdictNote">Verdict: strongest wind up to the selected altitude and gusts at 10 m. When the models disagree
+      and the windiest one exceeds the limit, CAUTION instead of FLY.</p>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>

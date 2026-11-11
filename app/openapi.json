@@ -1,0 +1,152 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FPV Wind - forecast proxy",
+    "version": "1.0.0",
+    "summary": "Open-Meteo caching proxy used by the FPV Wind app (wind at altitude for FPV drone pilots).",
+    "description": "Read-only, no authentication. Parameters and response are those of the Open-Meteo Forecast API (https://open-meteo.com/en/docs). Responses are cached for 30 minutes; about 10 requests/s per IP address (HTTP 429 above that). Shared free quota: no bulk downloading. Data: Open-Meteo.com (CC BY 4.0).",
+    "license": {
+      "name": "CC BY 4.0 (Open-Meteo data)",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  },
+  "externalDocs": {
+    "description": "Open-Meteo Forecast API",
+    "url": "https://open-meteo.com/en/docs"
+  },
+  "servers": [
+    {
+      "url": "https://example.com/fpv-wind/api"
+    }
+  ],
+  "paths": {
+    "/forecast": {
+      "get": {
+        "operationId": "getForecast",
+        "summary": "Weather forecast (Open-Meteo format)",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "description": "Latitude (several points separated by commas)",
+            "schema": {
+              "type": "string",
+              "example": "52.23"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "description": "Longitude (several points separated by commas)",
+            "schema": {
+              "type": "string",
+              "example": "21.01"
+            }
+          },
+          {
+            "name": "hourly",
+            "in": "query",
+            "description": "Hourly variables, e.g. wind_speed_10m,wind_direction_10m,wind_gusts_10m,wind_speed_80m,wind_speed_120m",
+            "schema": {
+              "type": "string",
+              "example": "wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Numerical models, e.g. best_match,icon_seamless,ecmwf_ifs025",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wind_speed_unit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "kmh",
+                "ms",
+                "mph",
+                "kn"
+              ],
+              "default": "kmh"
+            }
+          },
+          {
+            "name": "forecast_days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16,
+              "default": 7
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "auto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Forecast in Open-Meteo format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "latitude": {
+                      "type": "number"
+                    },
+                    "longitude": {
+                      "type": "number"
+                    },
+                    "elevation": {
+                      "type": "number"
+                    },
+                    "hourly_units": {
+                      "type": "object"
+                    },
+                    "hourly": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters (Open-Meteo error message)"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    }
+  }
+}
